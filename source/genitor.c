@@ -148,7 +148,7 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 	population[0] = treeWithScoreCreate(treeCopy(initPop[0]->tree, 1), initPop[0]->score);
 	k = 1;
 
-	for (i = 0; i < treeNum; i++)
+	for (i = 1; i < treeNum; i++)
 	{
 		if (treeIsUnique(initPop[i], -1, population, k))
 		{
