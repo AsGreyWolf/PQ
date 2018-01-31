@@ -58,13 +58,13 @@ void printLongHelp(void)
     printf("           \"genitor\" : search for optimal tree with genetic algorithm\n");
     printf("                --iterNum <Positive integer>\n");
     printf("                    for \"genitor\" option: number of iterations to perform\n");
-    printf("                    Default: 100\n");
+    printf("                    Default: 10 times tree size\n");
     printf("                --iterNew <Positive integer>\n");
     printf("                    for \"genitor\" option: number of iterations during which leader hasn't changed to stop after\n");
-    printf("                    Default: 50\n");
+    printf("                    Default: 5 times tree size\n");
     printf("                --iterLim <Positive integer>\n");
     printf("                    for \"genitor\" option: number of failures to stop after\n");
-    printf("                    Default: 25\n");
+    printf("                    Default: 10\n");
     printf("      Default: \"bestScore\"\n");
     printf("      Growing is not performed if an initial tree is given\n");
     printf(" -randLeaves <0 or 1>\n");
@@ -168,9 +168,9 @@ int main(int argc, char** argv)
     int randLeaves = 1;
     char* grType;
     unsigned treeNum = 10;
-    unsigned iterNum = 100;
-    unsigned iterNew = 50;
-    unsigned iterLim = 25; 
+    unsigned iterNum = 0;
+    unsigned iterNew = 0;
+    unsigned iterLim = 10; 
     char* nniType;
     unsigned long int trTime = 1000;
     unsigned int initTemp = 1000;
@@ -333,7 +333,6 @@ int main(int argc, char** argv)
                     chType = argv[startOptionsNum + 1];
                 }
             }
-            //----------------------
             if (strcmp(param, "--iterNum") == 0)
             {
                 known = 1;
@@ -358,7 +357,6 @@ int main(int argc, char** argv)
                     iterLim = atoi(argv[startOptionsNum + 1]);
                 }
             }
-            //----------------------
             if (strcmp(param, "-nniType") == 0)
             {
                 known = 1;
@@ -659,6 +657,14 @@ int main(int argc, char** argv)
             else if ((strcmp(chType, "genitor") == 0))
             {
                 printf("starting genitor\n");
+                if (iterNum == 0)
+                {
+                    iterNum = 10 * trees[0]->tree->leavesNum;
+                }
+                if (iterNew == 0)
+                {
+                    iterNew = 5 * trees[0]->tree->leavesNum;
+                }
                 result = genitor(trees, treeNum, alignment, alpha, gapOpt, pwmMatrix, hashScore, iterNum, iterNew, iterLim);
                 for(i = 0; i < treeNum; ++i)
                 {

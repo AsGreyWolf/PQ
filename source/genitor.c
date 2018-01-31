@@ -14,7 +14,6 @@ unsigned treeIsUnique(TreeWithScore* intree, int pos, TreeWithScore** trees, uns
 		{
 			if (trees[i]->score == intree->score)
 			{
-				//printf("%ld, %ld\n", trees[i]->score, intree->score);
 				intersection = UMAST(trees[i]->tree, intree->tree);
 
 				if (intersection->leavesNum == intree->tree->leavesNum)
@@ -145,6 +144,32 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 	}
 	printf("%d unique trees\n", k);
 
+	if (k == 0)
+	{
+		for (i = 1; i < treeNum; i++)
+		{
+			if (initPop[i]->score != initPop[0]->score)
+			{
+				k++;
+				break;
+			}
+		}
+		if (k == 0)
+		{
+			offspring = treeWithScoreCreate(treeCopy(initPop[0]->tree, 1), initPop[0]->score);
+			printf("Whole population consists of a single tree, no need for genitor run;\n");
+			printf("Returning the only tree..\n");
+			free(uniqueSet);
+			free(population);
+			for (i = 0; i < treeNum; i++)
+			{
+				treeWithScoreDelete(initPop[i]);
+			}
+			free(initPop);
+			return offspring;
+		}
+	}
+
 	population[0] = treeWithScoreCreate(treeCopy(initPop[0]->tree, 1), initPop[0]->score);
 	k = 1;
 
@@ -157,8 +182,12 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 		}
 	}
 
+	t = 0;
+	failure = 0;
+	treeWithScoreSort(population, k); 
+	leaderScore = population[k - 1]->score;
 	
-	while (k < treeNum)
+	while ((t < iterNum) && (k < treeNum))
 	{
 		i = rand() % k;
 		j = rand() % k;
@@ -175,58 +204,85 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 		offspring->score = countScoreHash(alignment, offspring->tree, pwmMatrix, alpha, gapOpt,\
 								hashScore, permutation);
 
-		
+		printf("Iter: %4d, Score: %ld, parents: %3d and %3d, ", t + 1, offspring->score, i + 1, j + 1);
 
-		if ((treeIsUnique(offspring, -1, population, k)))
+		if (offspring->score <= population[0]->score)
 		{
-			printf("Iter: %4d, Score: %ld, parents: %3d and %3d \n", t + 1, offspring->score, i + 1, j + 1);
+			failure++;
+			printf("bad score ");
+		}
+		else if (!(treeIsUnique(offspring, -1, population, k)))
+		{
+			failure++;
+			printf("unique: 0 ");
+		}
+		if ((offspring->score > population[0]->score) && 
+                   (treeIsUnique(offspring, -1, population, k)))
+		{
+			if (tmpFailureStreak < failure)
+			{
+				tmpFailureStreak = failure;
+			}
+			failure = 0;
 			population[k] = offspring;
-			//treeWithScoreSort(population, k);
+			treeWithScoreSort(population, k);
+			printf("unique: 1 ");
 			k++;
-			t++;
+		}
+
+		if (population[k - 1]->score != leaderScore)
+		{
+			leaderScore = population[k - 1]->score;
+			if (maxLeaderStreak < leaderIter)
+			{
+				maxLeaderStreak = leaderIter;
+			}
+			leaderIter = 0;
+			if (maxFailureStreak < tmpFailureStreak)
+			{
+				maxFailureStreak = tmpFailureStreak;
+			}
+			tmpFailureStreak = 0;
+			printf("new leader: yes\n");
 		}
 		else
 		{
-			failure++;
-			printf("failed to generate unique offspring %d times\n", failure);
+			leaderIter++;
+			printf("new leader: no\n");
 		}
 
-		if (failure == iterNum)
+
+		if (failure == iterLim)
 		{
+			printf("No new trees for %d iterations\n", iterLim);
+			printf("Longest failure streak: %d, longest leader streak: %d\n", maxFailureStreak, maxLeaderStreak);
+			return population[k - 1];
+		}
+
+		if (leaderIter == iterNew) 
+		{
+			printf("Leader remains for %d iterations\n", iterNew);
+			printf("Longest failure streak: %d, longest leader streak: %d\n", maxFailureStreak, maxLeaderStreak);
+			return population[k - 1];
+		}
+
+		t++;
+
+		if (k == treeNum)
+		{
+			printf("unique population successfully generated, starting genitor\n");
+			for (i = 0; i < treeNum; i++)
+			{
+				treeWithScoreDelete(initPop[i]);
+			}
+			free(initPop);
 			break;
 		}
 	}
 
-	if (k == treeNum)
-	{
-		printf("unique population successfully generated\n");
-		for (i = 0; i < treeNum; i++)
-		{
-			treeWithScoreDelete(initPop[i]);
-		}
-		free(initPop);
-	}
-	else
-	{
-		printf("failed to generate unique population\n");
-		for (i = 0; i < k; i++)
-		{
-			treeWithScoreDelete(population[i]);
-		}
-		for (i = 0; i < treeNum; i++)
-		{
-			population[i] = treeWithScoreCreate(treeCopy(initPop[i]->tree, 1), initPop[i]->score);
-			treeWithScoreDelete(initPop[i]);
-		}
-		free(initPop);
-	}
-	
-	printf("successfully passed, starting genitor\n");
 	treeWithScoreSort(population, treeNum); 
+	//printf("%ld, %ld\n", population[0]->score, population[treeNum - 1]->score);
 	leaderScore = population[treeNum - 1]->score; 
-
-	t = 0;
-	failure = 0;
 
 	while (t < iterNum)
 	{
@@ -247,7 +303,6 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 
 		printf("Iter: %4d, Score: %ld, parents: %3d and %3d, ", t + 1, offspring->score, i + 1, j + 1);
 
-		//printf("offspring is unique: %d\n", treeIsUnique(offspring, -1, population, treeNum));
 		if (offspring->score <= population[0]->score)
 		{
 			failure++;
