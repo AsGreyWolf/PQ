@@ -206,18 +206,12 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 
 		printf("Iter: %4d, Score: %ld, parents: %3d and %3d, ", t + 1, offspring->score, i + 1, j + 1);
 
-		if (offspring->score <= population[0]->score)
-		{
-			failure++;
-			printf("bad score ");
-		}
-		else if (!(treeIsUnique(offspring, -1, population, k)))
+		if (!(treeIsUnique(offspring, -1, population, k)))
 		{
 			failure++;
 			printf("unique: 0 ");
 		}
-		if ((offspring->score > population[0]->score) && 
-                   (treeIsUnique(offspring, -1, population, k)))
+		if (treeIsUnique(offspring, -1, population, k))
 		{
 			if (tmpFailureStreak < failure)
 			{
@@ -281,7 +275,6 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 	}
 
 	treeWithScoreSort(population, treeNum); 
-	//printf("%ld, %ld\n", population[0]->score, population[treeNum - 1]->score);
 	leaderScore = population[treeNum - 1]->score; 
 
 	while (t < iterNum)
