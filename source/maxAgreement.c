@@ -1239,35 +1239,18 @@ Tree* makeUMASTTree(Branch* br, Tree* tree1)
 
     if (commonLeavesNum == tree1->leavesNum)
     {
-        //fprintf(logfile, "%s\n", "pruned trees match completely");
         result = treeCopy(tree1, 0);
-        //fprintf(logfile, "%s\n", treeToString(result));
-        //fprintf(treefile, "%s\n", treeToString(result));
-        //fclose(logfile);
-        //fclose(treefile);
         free(requiredLeavesPoses);
         return result;
     }else if (commonLeavesNum == 0){
-        //fprintf(logfile, "%s\n", "trees don't match");
-        //fprintf(treefile, "();\n");
-        //fclose(logfile);
-        //fclose(treefile);
         return 0;
     }else {
-        //fprintf(logfile, "%zu%s\n", tree1->leavesNum - commonLeavesNum, " leaves are to be deleted");
         requiredLeavesNames = calloc(commonLeavesNum, sizeof(char*));
         for(i = 0; i < commonLeavesNum; ++i){
             requiredLeavesNames[i] = tree1->leaves[requiredLeavesPoses[i]]->name;
         }
 
         result = treePrune(tree1, requiredLeavesNames, commonLeavesNum, 0);
-
-        //fprintf(logfile, "%s\n", "Maximum agreement subtree found:");
-        //fprintf(logfile, "%s\n", treeToString(result));
-        //fprintf(treefile, "%s\n", treeToString(result));
-        //fprintf(logfile, "%d\n", result->leavesNum);
-        //fclose(logfile);
-        //fclose(treefile);
 
         free(requiredLeavesPoses);
         free(requiredLeavesNames);
@@ -1357,12 +1340,8 @@ Tree* UMAST(Tree* intree1, Tree* intree2){
         }
     }
 
-    //printf("%d\n", bestLeavesNum);
     result = makeUMASTTree(bestBranch, tree1);
-    /*if (result){
-        treeDelete(result);
-    }
-    */
+    
     free(rootPositions);
     free(sortedSet2);
     free(setPermutation1);
@@ -1381,35 +1360,3 @@ Tree* UMAST(Tree* intree1, Tree* intree2){
     free(TAB);
     return result;
 } //UMAST
-
-/*
-int main(int argc, char** argv){
-    Tree* tree1;
-    Tree* tree2;
-    FILE* logfile;
-
-    if (argc != 3)
-    {
-        fprintf(stderr, "Wrong number of arguments\n");
-        fprintf(stderr, "Usage:\n");
-        fprintf(stderr, "%s tree1 tree2\n", argv[0]);
-        exit(1);
-    }
-
-    logfile = fopen("umast.log", "w");
-    time_t t = time(NULL);
-    struct tm* aTm = localtime(&t);
-
-    fprintf(logfile, "UMAST execution started\n");
-    fprintf(logfile, "%04d/%02d/%02d %02d:%02d:%02d\n", aTm->tm_year+1900, aTm->tm_mon+1,\
-            aTm->tm_mday, aTm->tm_hour, aTm->tm_min, aTm->tm_sec);
-    tree1 = treeRead(argv[1]);
-    tree2 = treeRead(argv[2]);
-    fprintf(logfile, "Trees read successfully\n");
-    fprintf(logfile, "%s\n", treeToString(tree1));
-    fprintf(logfile, "%s\n", treeToString(tree2));
-    fclose(logfile);
-    UMAST(tree1, tree2);
-    return 0;
-}
-*/
