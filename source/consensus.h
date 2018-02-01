@@ -3,51 +3,12 @@
 #include "add.h"
 #include "RMQ.h"
 #include "Tree.h"
+#include "Branch.h"
+#include "BranchArray.h"
 #include "stdlib.h"
 
-
-
 extern const char LOGUNS[4097];
-static const char intSize = sizeof(INT) * 8;
 
-
-typedef struct
-{
-    unsigned size;
-    INT* branch;
-}Branch;
-
-
-size_t branchGetIntSize(Branch* br);
-Branch* branchCreate(unsigned size);
-void branchDelete(Branch* branch);
-unsigned countZeroRightNum_(INT p);
-unsigned countZeroRightNum(INT p);
-size_t* branchGetLeavesPos(Branch* br, size_t* leavesNum, size_t maxNum);
-int branchCompare(Branch* br1, Branch* br2);
-int vBranchCompare(const void* branch1, const void* branch2);
-void branchNormalize(Branch* br);
-char* branchToString(Branch* br);
-char branchContradict(Branch* br1, Branch* br2);
-char branchIsSubset(Branch* br1, Branch* br2);
-Branch* branchAnd(Branch* br1, Branch* br2);
-Branch* branchOr(Branch* br1, Branch* br2);
-Branch* branchReverse(Branch* br);
-Branch* branchCopy(Branch* br);
-char branchIsZero(Branch* br);
-
-typedef struct 
-{
-    Branch** array;
-    unsigned size;
-    unsigned maxSize;
-}BranchArray;
-
-BranchArray* branchArrayCreate(unsigned startSize);
-void branchArrayDelete(BranchArray* ba);
-void branchArrayAdd(BranchArray* ba, Branch* branch);
-void branchArraySort(BranchArray* ba);
-void branchArrayExtend(BranchArray* dest, BranchArray* source);
 BranchArray* treeToBranch(Tree* tree, int* permutation);
 
 typedef struct BranchWithOccurence
@@ -58,7 +19,6 @@ typedef struct BranchWithOccurence
 
 BranchOcc* branchOccCreate(Branch* branch, unsigned occurence);
 void branchOccDelete(BranchOcc* brc);
-void branchPrint(Branch* br);
 int branchOccCompare(BranchOcc* brc1, BranchOcc* brc2);
 int vBranchOccCompare(const void* brc1, const void* brc2);
 int branchOccCompareByBranch(BranchOcc* brc1, BranchOcc* brc2);
