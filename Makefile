@@ -1,4 +1,4 @@
-SOURCE_DIR = source
+SOURCE_DIR = gen_test
 LINK_DIR = link
 
 .PHONY: all clean
@@ -57,6 +57,15 @@ sprTree.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/sprTree.c
 estimate.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/estimate.c
 	gcc -O2 -c $(SOURCE_DIR)/estimate.c -o $(LINK_DIR)/estimate.o
 
+Branch.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/Branch.c
+	gcc -O2 -c $(SOURCE_DIR)/Branch.c -o $(LINK_DIR)/Branch.o
+
+BranchArray.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/BranchArray.c
+	gcc -O2 -c $(SOURCE_DIR)/BranchArray.c -o $(LINK_DIR)/BranchArray.o
+
+BranchAllocator.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/BranchAllocator.c
+	gcc -O2 -c $(SOURCE_DIR)/BranchAllocator.c -o $(LINK_DIR)/BranchAllocator.o
+
 consensus.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/consensus.c
 	gcc -O2 -c $(SOURCE_DIR)/consensus.c -o $(LINK_DIR)/consensus.o
 
@@ -75,7 +84,8 @@ PQ.o : $(SOURCE_DIR) $(LINK_DIR) $(SOURCE_DIR)/PQ.c
 PQ : PQ.o add.o Record.o \
     RecordList.o HashAlignment.o PWM.o countScore.o countScoreHash.o\
     Tree.o RMQ.o growTree.o TreeWS.o nniTree.o sprTree.o estimate.o\
-    consensus.o bootstrap.o maxAgreement.o genitor.o
+    Branch.o BranchArray.o BranchAllocator.o consensus.o bootstrap.o\
+    maxAgreement.o genitor.o
 	gcc $(LINK_DIR)/PQ.o $(LINK_DIR)/add.o\
 	    $(LINK_DIR)/Record.o $(LINK_DIR)/RecordList.o\
 	    $(LINK_DIR)/HashAlignment.o $(LINK_DIR)/PWM.o\
@@ -83,5 +93,7 @@ PQ : PQ.o add.o Record.o \
 	    $(LINK_DIR)/countScoreHash.o $(LINK_DIR)/Tree.o\
 	    $(LINK_DIR)/RMQ.o $(LINK_DIR)/growTree.o $(LINK_DIR)/TreeWS.o\
 	    $(LINK_DIR)/nniTree.o $(LINK_DIR)/sprTree.o\
-	    $(LINK_DIR)/estimate.o $(LINK_DIR)/consensus.o\
-	    $(LINK_DIR)/bootstrap.o $(LINK_DIR)/maxAgreement.o $(LINK_DIR)/genitor.o -lm -o PQ.exe
+	    $(LINK_DIR)/estimate.o $(LINK_DIR)/Branch.o\
+	    $(LINK_DIR)/BranchArray.o $(LINK_DIR)/BranchAllocator.o\
+	    $(LINK_DIR)/consensus.o $(LINK_DIR)/bootstrap.o\
+        $(LINK_DIR)/maxAgreement.o $(LINK_DIR)/genitor.o -lm -o PQ.exe
