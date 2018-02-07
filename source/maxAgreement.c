@@ -1228,14 +1228,9 @@ Tree* makeUMASTTree(Branch* br, Tree* tree1)
 {
     int i;
     Tree* result;
-    FILE* logfile;
-    FILE* treefile;
     size_t commonLeavesNum = 0;
     size_t* requiredLeavesPoses = branchGetLeavesPos(br, &commonLeavesNum, tree1->leavesNum);
     char** requiredLeavesNames;
-
-    logfile = fopen("umast.log", "a+");
-    treefile = fopen("umast.tre", "w");
 
     if (commonLeavesNum == tree1->leavesNum)
     {
