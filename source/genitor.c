@@ -196,7 +196,6 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 								hashScore, permutation);
 
 		printf("Iter: %4d, Score: %ld, parents: %3d and %3d, ", t + 1, offspring->score, i + 1, j + 1);
-		printf("k: %3d ", k);
 
 		if (!(treeIsUnique(offspring, -1, population, k)))
 		{
