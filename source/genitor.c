@@ -191,7 +191,7 @@ TreeWithScore* genitor(TreeWithScore** trees, unsigned treeNum, HashAlignment* a
 							gapOpt, pwmMatrix, hashScore);
 
 		treeNames = treeGetNames(offspring->tree);
-        permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
+		permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
 		offspring->score = countScoreHash(alignment, offspring->tree, pwmMatrix, alpha, gapOpt,\
 								hashScore, permutation);
 
@@ -278,7 +278,7 @@ free(initPop);
 							gapOpt, pwmMatrix, hashScore);
 
 		treeNames = treeGetNames(offspring->tree);
-        permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
+		permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
 		offspring->score = countScoreHash(alignment, offspring->tree, pwmMatrix, alpha, gapOpt,\
 								hashScore, permutation);
 
