@@ -86,6 +86,9 @@ void printLongHelp(void)
     printf("      --mcStyle <1|2|3>\n");
     printf("           For \"trajectory\"option: style of Monte-Carlo search\n");
     printf("           Default: 1\n");
+    printf("      --trajectoryResultStyle <1|2>\n");
+    printf("           For \"trajectory\"option: style of result tree search\n");
+    printf("           Default: 1\n");
     printf(" -sprType <String>\n");
     printf("      \"none\": do not perform SPR search,\n");
     printf("      \"direct\" or \"gradient\": perform gradient SPR hill climbing,\n");
@@ -141,7 +144,7 @@ void printHelp(char *command)
     printf("\t\t[--chType <bestScore|consensus|genitor>]\n");
     printf("\t\t\t[--iterNum <int>] [--iterNew <int>] [--iterLim <int>]\n");
     printf("\t[-nniType <none|simple|direct|trajectory>\n");
-    printf("\t\t[--trTime <int>] [--initTemp <int>] [--mcStyle <1|2|3>]]\n");
+    printf("\t\t[--trTime <int>] [--initTemp <int>] [--mcStyle <1|2|3>]] [--trajectoryResultStyle <1|2>]]\n");
     printf("\t[-sprType <none|simple|direct>]\n");
     printf("\t[-neiZscore <0|1>] [-randTreeZscore <0|1>]\n");
     printf("\t\t[-distrFile <FileName>]\n");
@@ -175,6 +178,7 @@ int main(int argc, char** argv)
     unsigned long int trTime = 1000;
     unsigned int initTemp = 1000;
     unsigned int mcStyle = 1;
+    unsigned int trajectoryResultStyle = 1;
     char* sprType;
     char* sampleType;
     char* distrFileName = NULL;
@@ -199,6 +203,7 @@ int main(int argc, char** argv)
     TreeWithScore* result = NULL;
     TreeWithScore** trees;
     Tree** treesTemp;
+    unsigned int* treesWeight;
     TreeWithScore* nniResult;
     Trajectory* resultTrajectory;
     TreeWithScore* sprResult;
@@ -268,7 +273,7 @@ int main(int argc, char** argv)
                 known = 1;
                 if (startOptionsNum + 1 < argc)
                 {
-                    outFileName = (char *)malloc(sizeof(char) * (strlen(argv[startOptionsNum + 1] + 1)));
+                    outFileName = (char *)malloc(sizeof(char) * (strlen(argv[startOptionsNum + 1]) + 1));
                     strcpy(outFileName, argv[startOptionsNum + 1]);
                 }
                 printf("Start computing\n");
@@ -394,6 +399,14 @@ int main(int argc, char** argv)
                 if (startOptionsNum + 1 < argc)
                 {
                     mcStyle = atoi(argv[startOptionsNum + 1]);
+                }
+            }
+	    if (strcmp(param, "--trajectoryResultStyle") == 0)
+            {
+                known = 1;
+                if (startOptionsNum + 1 < argc)
+                {
+                    trajectoryResultStyle = atoi(argv[startOptionsNum + 1]);
                 }
             }
             if (strcmp(param, "-sprType") == 0)
@@ -634,11 +647,13 @@ int main(int argc, char** argv)
                 //fprintf(stderr, "Option %s for multiple grow us not ready yet, PQ:main\n", chType);
                 //exit(1);
                 treesTemp = malloc(sizeof(Tree*) * treeNum);
+                treesWeight = malloc(sizeof(unsigned int) * treeNum);
                 for(i = 0; i < treeNum; ++i)
                 {
                     treesTemp[i] = trees[i]->tree;
+                    treesWeight[i] = 1;
                 }
-                result = treeWithScoreCreate(makeConsensus(treesTemp, treeNum, 
+                result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, treeNum, 
                             consensus_threshold, extended), 0);
                 treeNames = treeGetNames(result->tree);
                 seqNames = hashAlignmentGetSeqNames(alignment);
@@ -733,11 +748,25 @@ int main(int argc, char** argv)
     {
         resultTrajectory = trajectoryNNI(result->tree, alignment, pwmMatrix, alpha, gapOpt, hashScore, trTime, initTemp, mcStyle);
         treeWithScoreDelete(result);
-        result = resultTrajectory->bestPoint->treeWS;
-        nniResult = gradientNNI(result->tree, alignment, pwmMatrix, 
+	if (trajectoryResultStyle == BEST_SCORE) {
+        	result = resultTrajectory->bestPoint->treeWS;
+        	nniResult = gradientNNI(result->tree, alignment, pwmMatrix, 
                                 alpha, gapOpt, hashScore); /* perform hill climbing after trajectory */
-        treeWithScoreDelete(result);
-        result = nniResult;
+        	treeWithScoreDelete(result);
+        	result = nniResult;
+	} else if (trajectoryResultStyle == CONSENSUS) {
+		treesTemp = malloc(sizeof(Tree*) * resultTrajectory->size);
+		treesWeight = malloc(sizeof(unsigned int) * resultTrajectory->size);
+		unsigned int i = 0;
+		for (TrajectoryElement* element = resultTrajectory->head; element != NULL; element = element->next) {
+			treesTemp[i] = element->treeWS->tree;
+			TrajectoryElement* next = element->next;
+			treesWeight[i++] = (next == NULL ? trTime : ((TrajectoryElement*)element->next)->time) - element->time;
+		}
+
+        	result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, resultTreeNum,
+                    consensus_threshold, extended), 0);
+	}
     }
     else
     {
@@ -868,12 +897,14 @@ int main(int argc, char** argv)
     if (doConsensus && resultTreeNum > 1)
     {
         treesTemp = malloc(sizeof(Tree*) * resultTreeNum);
+        treesWeight = malloc(sizeof(unsigned int) * resultTreeNum);
         for(i = 0; i < resultTreeNum; ++i)
         {
             treesTemp[i] = resultTrees[i]->tree;
+            treesWeight[i] = 1;
         }
 
-        result = treeWithScoreCreate(makeConsensus(treesTemp, resultTreeNum,
+        result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, resultTreeNum,
                     consensus_threshold, extended), 0);
         treeNames = treeGetNames(result->tree);
         seqNames = hashAlignmentGetSeqNames(alignment);
@@ -893,7 +924,8 @@ int main(int argc, char** argv)
         }
         for(i = 0; i < resultTreeNum; ++i)
         {
-            fileName = malloc(sizeof(char) * (strlen(outFileName) + 6 + i / 10));
+            size_t len = snprintf(NULL, 0, "%s_%u.nwk", outFileName, i);
+            fileName = malloc(sizeof(char) * (len + 1));
             sprintf(fileName, "%s_%u.nwk", outFileName, i);
             treeWrite(resultTrees[i]->tree, fileName);
         }

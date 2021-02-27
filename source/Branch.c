@@ -38,6 +38,18 @@ Branch* branchCreate(unsigned size)
     branch->size = size;
     branch->branch = (INT*)calloc(sizeof(INT), branchGetIntSize(branch));
     branch->leavesNum = 0;
+    branch->weight = 1;
+    return branch;
+}
+
+Branch* branchCreateWeighted(unsigned size, unsigned int weight)
+{
+    Branch* branch;
+    branch = (Branch*)malloc(sizeof(Branch));
+    branch->size = size;
+    branch->branch = (INT*)calloc(sizeof(INT), branchGetIntSize(branch));
+    branch->leavesNum = 0;
+    branch->weight = weight;
     return branch;
 }
 
@@ -360,6 +372,7 @@ Branch* branchCopy(Branch* br)
         copy->branch[i] = br->branch[i];
     }
     copy->leavesNum = br->leavesNum;
+    copy->weight = br->weight;
     return copy;
 }
 
@@ -375,6 +388,7 @@ Branch* branchCopyToDest(Branch* br, Branch* dest){
       dest->branch[i] = br->branch[i];
   }
   dest->leavesNum = br->leavesNum;
+  dest->weight = br->weight;
   return dest;
 }
 

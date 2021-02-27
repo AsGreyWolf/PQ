@@ -38,6 +38,11 @@ TreeWithScore* simpleNNI(Tree* inTree, HashAlignment* alignment,
 TreeWithScore* gradientNNI(Tree* inTree, HashAlignment* alignment, 
     PWM* pwmMatrix, int alpha, GapOpt gapOpt, INT**** hashScore);
 
+enum RESULT_TREE_STYLE {
+    BEST_SCORE = 1,
+    CONSENSUS = 2
+};
+
 Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
     PWM* pwmMatrix, int alpha, GapOpt gapOpt, INT**** hashScore,
     unsigned long int trajectoryTime, unsigned int temperature, unsigned int mcStyle);

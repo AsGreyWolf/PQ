@@ -66,9 +66,9 @@ void branchCounterAdd(BranchCounter* bc, Branch* br, size_t branchOccurence)
     bc->array[bc->size++] = branchOccCreate(br, branchOccurence);
 }
 
-void branchCounterInc(BranchCounter* bc, unsigned pos)
+void branchCounterInc(BranchCounter* bc, unsigned pos, unsigned diff)
 {
-    ++bc->array[pos]->occurence;
+    bc->array[pos]->occurence += diff;
 }
 
 BranchCounter* branchCount(BranchArray* ba)
@@ -80,11 +80,11 @@ BranchCounter* branchCount(BranchArray* ba)
     {
         if (branchCompare(ba->array[i - 1], ba->array[i]))
         {
-            branchCounterAdd(bc, ba->array[i], 1);
+            branchCounterAdd(bc, ba->array[i], ba->array[i]->weight);
         }
         else
         {
-            branchCounterInc(bc, bc->size - 1);
+            branchCounterInc(bc, bc->size - 1, ba->array[i]->weight);
         }
     }
 
@@ -102,7 +102,7 @@ void branchCounterSortByBranch(BranchCounter* brc)
     qsort(brc->array, brc->size, sizeof(BranchOcc*), vBranchOccCompareByBranch);
 }
 
-BranchArray* treeToBranch(Tree* tree, int* permutation)
+BranchArray* treeToBranch(Tree* tree, int* permutation, unsigned int weight)
 {
     INT p = 1;
     int i = 0;
@@ -134,7 +134,7 @@ BranchArray* treeToBranch(Tree* tree, int* permutation)
 
     for(i = 0; i < branchNum; ++i)
     {
-        branchArrayAdd(ba, branchCreate(tree->leavesNum));
+        branchArrayAdd(ba, branchCreateWeighted(tree->leavesNum, weight));
     }
 
     for(i = 0; i < tree->leavesNum; ++i)
@@ -667,27 +667,26 @@ BranchCounter* majorityExtendedRule(BranchCounter* bc, unsigned threshold)
 }
 
 
-Tree* makeConsensus(Tree** treeArray, size_t treeNum, double threshold,
+Tree* makeConsensus(Tree** treeArray, unsigned int* treesWeight, size_t treeNum, double threshold,
         char extended)  
 {
     int i = 0;
     char** initTreeNames = treeGetNames(treeArray[0]);
     int* permutation = getRange(0, treeArray[0]->leavesNum);
-    BranchArray* ba = treeToBranch(treeArray[0], permutation);
+    BranchArray* ba = treeToBranch(treeArray[0], permutation, treesWeight[0]);
     BranchArray* temp = NULL;
     char** treeNames = NULL;
     Tree* consensusTree = NULL;
     BranchCounter* consensus = NULL;
     BranchCounter* bc = NULL;
     free(permutation);
-    int j = 0;
     for(i = 1; i < treeNum; ++i)
     {
         treeNames = treeGetNames(treeArray[i]); 
         permutation = calculatePermutation(treeNames, initTreeNames,
                 treeArray[i]->leavesNum);
         
-        temp = treeToBranch(treeArray[i], permutation);
+        temp = treeToBranch(treeArray[i], permutation, treesWeight[i]);
         
         branchArrayExtend(ba, temp);
         free(permutation);

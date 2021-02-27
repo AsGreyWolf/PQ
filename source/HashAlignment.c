@@ -101,8 +101,8 @@ HashAlignment* hashAlignmentRead(char* inFileName)
                 name = (char*)malloc(sizeof(char) * (spacePos + 1));
                 memcpy(name, line + 1, spacePos - 1);
                 name[spacePos - 1] = '\0';
-                description = (char*)malloc(sizeof(char) * (strlen(line) + 1 - spacePos));
-                memcpy(description, line + spacePos + 1, strlen(line) + 1 - spacePos); // \0 will copied too
+                description = (char*)malloc(sizeof(char) * (strlen(line) - spacePos));
+                memcpy(description, line + spacePos + 1, strlen(line) - spacePos); // \0 will copied too
             }
         }
         else if (line[0] != '>' && firstLine)

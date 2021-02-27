@@ -28,6 +28,7 @@ typedef struct
     unsigned size;
     int leavesNum; // -1 for uncalculated
     INT* branch;
+    unsigned int weight;
 }Branch;
 
 static const char intSize = sizeof(INT) * 8;
@@ -37,6 +38,7 @@ size_t getBitMaskIntSize(unsigned size);
 size_t branchGetIntSize(Branch* br);
 
 Branch* branchCreate(unsigned size);
+Branch* branchCreateWeighted(unsigned size, unsigned int weight);
 
 void branchDelete(Branch* branch);
 

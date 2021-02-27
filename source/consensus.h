@@ -9,7 +9,7 @@
 
 extern const char LOGUNS[4097];
 
-BranchArray* treeToBranch(Tree* tree, int* permutation);
+BranchArray* treeToBranch(Tree* tree, int* permutation, unsigned int weight);
 
 typedef struct BranchWithOccurence
 {
@@ -34,7 +34,7 @@ typedef struct
 BranchCounter* branchCounterCreate(size_t startMaxSize);
 void branchCounterDelete(BranchCounter* bc);
 void branchCounterAdd(BranchCounter* bc, Branch* br, size_t branchOccurence);
-void branchCounterInc(BranchCounter* bc, unsigned pos);
+void branchCounterInc(BranchCounter* bc, unsigned pos, unsigned diff);
 BranchCounter* branchCount(BranchArray* ba);
 void branchCounterSort(BranchCounter* brc);
 void branchCounterSortByBranch(BranchCounter* brc);
@@ -63,6 +63,6 @@ void parserNodeDelete(ParserNode* nd);
 ParserTree* parserTreeCreate();
 void parserTreeDelete(ParserTree* tree);
 void parserTreePrint(ParserTree* tree);
-Tree* makeConsensus(Tree** treeArray, size_t treeNum, double threshold,
+Tree* makeConsensus(Tree** treeArray, unsigned int* treesWeight, size_t treeNum, double threshold,
         char extended); 
 #endif
