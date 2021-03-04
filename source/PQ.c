@@ -766,6 +766,12 @@ int main(int argc, char** argv)
 
         	result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, resultTrajectory->size,
                     consensus_threshold, extended), 0);
+        	treeLCAFinderCalculate(result->tree);
+        	treeNames = treeGetNames(result->tree);
+        	seqNames = hashAlignmentGetSeqNames(alignment);
+        	permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
+		result->score = countScoreHash(alignment, result->tree,
+                        pwmMatrix, alpha, gapOpt, hashScore, permutation);
 	}
     }
     else
