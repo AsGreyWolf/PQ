@@ -694,7 +694,7 @@ char* treeConsensusToString(Tree* tree)
     string[strCurSize++] = ')';
     string[strCurSize++] = ';';
     string[strCurSize++] = '\0';
-    string = realloc(string, sizeof(char) * strlen(string));
+    string = realloc(string, sizeof(char) * strlen(string)+1);
     treeWash(tree);
     free(number);
     nodeStackDelete(stack);
