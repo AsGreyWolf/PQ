@@ -75,7 +75,7 @@ BranchCounter* branchCount(BranchArray* ba)
 {
     BranchCounter* bc = branchCounterCreate(10);
     int i = 0;
-    branchCounterAdd(bc, ba->array[i],1);
+    branchCounterAdd(bc, ba->array[i], ba->array[i]->weight);
     for(i = 1; i < ba->size; ++i)
     {
         if (branchCompare(ba->array[i - 1], ba->array[i]))
@@ -398,7 +398,6 @@ void parserTreeAdd(ParserTree* tree, BranchOcc* branchOcc,
         }
     }
     if (name) curNode->treeNode = leafCreate(name);
-
     return;
 
 }
@@ -680,6 +679,7 @@ Tree* makeConsensus(Tree** treeArray, unsigned int* treesWeight, size_t treeNum,
     BranchCounter* consensus = NULL;
     BranchCounter* bc = NULL;
     free(permutation);
+    size_t weightSum = 0;
     for(i = 1; i < treeNum; ++i)
     {
         treeNames = treeGetNames(treeArray[i]); 
@@ -691,6 +691,7 @@ Tree* makeConsensus(Tree** treeArray, unsigned int* treesWeight, size_t treeNum,
         branchArrayExtend(ba, temp);
         free(permutation);
         branchArrayDelete(temp);
+        weightSum += treesWeight[i];
     }
     
 
@@ -700,12 +701,12 @@ Tree* makeConsensus(Tree** treeArray, unsigned int* treesWeight, size_t treeNum,
     if (extended)
     {
         printf("Applying extended majority rule\n");
-        consensus = majorityExtendedRule(bc, treeNum * threshold);
+        consensus = majorityExtendedRule(bc, weightSum * threshold);
     }
     else
     {
         printf("Applying majority rule with threshold %.02lf\n", threshold);
-        consensus = majorityRule(bc, treeNum * threshold);
+        consensus = majorityRule(bc, weightSum * threshold);
     }
 
     printf("Chosen branches:\n");

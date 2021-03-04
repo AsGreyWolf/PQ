@@ -764,7 +764,7 @@ int main(int argc, char** argv)
 			treesWeight[i++] = (next == NULL ? trTime : ((TrajectoryElement*)element->next)->time) - element->time;
 		}
 
-        	result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, resultTreeNum,
+        	result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, resultTrajectory->size,
                     consensus_threshold, extended), 0);
 	}
     }
