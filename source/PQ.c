@@ -921,6 +921,8 @@ int main(int argc, char** argv)
         free(treesTemp);
         treeConsensusWrite(result->tree, outFileName);
         treeDelete(result->tree);
+    } else if (trajectoryResultStyle == CONSENSUS) {
+        treeConsensusWrite(result->tree, outFileName);
     }
     else
     {
