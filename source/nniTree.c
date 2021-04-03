@@ -265,7 +265,7 @@ char isNextPoint2(int prevScore, int newScore, unsigned long revPrevTemp, unsign
 
         minProbability = (double) rand();
         minProbability /= RAND_MAX; 
-        coeff = ((double)(newScore - prevScore))/maxScore;
+        coeff = ((double)(newScore - prevScore));
         coeff = coeff*revPrevTemp - coeff*revNewTemp;
         probability = exp(coeff);
         if ( probability > minProbability)
@@ -552,8 +552,12 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
 			resultTrajectory[i]);
 	}
 	if (mcStyle == 4) {
-	    int leftTree = rand() % treeNum;
-	    int rightTree = rand() % treeNum;
+	    int leftTree = 0;
+	    int rightTree = 0;
+	    while (leftTree == rightTree) {
+	    	leftTree = rand() % treeNum;
+	    	rightTree = rand() % treeNum;
+	    }
             if (isNextPoint2(
 				    curPoint[leftTree]->score,
 				    curPoint[rightTree]->score,
@@ -563,6 +567,12 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
 		curPoint[leftTree] = curPoint[rightTree];
 		curPoint[rightTree] = tmp;
 		printf("Swapping %d and %d\n", leftTree, rightTree);
+                trajectoryAdd(resultTrajectory[leftTree],
+                    treeWithScoreCreate(treeCopy(curPoint[leftTree]->tree,0), curPoint[leftTree]->score),
+                    curTime[leftTree]); 
+                trajectoryAdd(resultTrajectory[rightTree],
+                    treeWithScoreCreate(treeCopy(curPoint[rightTree]->tree,0), curPoint[rightTree]->score),
+                    curTime[rightTree]); 
 	    }
 	}
     } /* while maximum number of steps is not reached */
