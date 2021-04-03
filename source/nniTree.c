@@ -255,87 +255,71 @@ char isNextPoint(int prevScore, int newScore, unsigned long revTemp)
     }
 }  /* isNextPoint */
 
-Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
-                          PWM* pwmMatrix,  int alpha, GapOpt gapOpt, INT**** hashScore,
-                          unsigned long trajectoryTime, unsigned int temperature, unsigned int mcStyle)
-    // traectoryTime means how many iterations should algorithm do 
-{   
-    int i, ii, j, variant;
-    int randI, randJ, randVariant;
-    int choice;
-    char** treeNames;
-    char** seqNames;
-    int* permutation;
-    int trLen = 0, new;
-    double curTemperature;
-    int* nodePermutation;
-    Tree* curTree;
-    Tree* newTree;
-    INT score;
-    TreeWithScore* curPoint;
-    TreeWithScore* newTreeWS;
-    Trajectory* resultTrajectory;
-    unsigned long int curTime = 0;
-    double step;
-    unsigned int newMcStyle = 0;
+char isNextPoint2(int prevScore, int newScore, unsigned long revPrevTemp, unsigned long revNewTemp)
+// 0 if not take to traectory, 1 if take;
+{
+    double minProbability;
     double coeff;
-    double*** p;
-    double Z, partialStatSum;
+    double probability;
+    int maxScore = prevScore < newScore ? newScore : prevScore;
 
-    srand(time(NULL)); // need for correct run isNextPoint;
+        minProbability = (double) rand();
+        minProbability /= RAND_MAX; 
+        coeff = ((double)(newScore - prevScore))/maxScore;
+        coeff = coeff*revPrevTemp - coeff*revNewTemp;
+        probability = exp(coeff);
+        if ( probability > minProbability)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+}  /* isNextPoint */
 
-    treeNames = treeGetNames(inTree);
-    seqNames = hashAlignmentGetSeqNames(alignment);
-    permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
-    curTree = treeCopy(inTree, 1);
-    treeWash(inTree);
-    score = countScoreHash(alignment, curTree, pwmMatrix, 
-                           alpha, gapOpt, hashScore, permutation);
-
-    curPoint = treeWithScoreCreate(curTree, score);
-
-    resultTrajectory = trajectoryCreate(trajectoryTime, temperature);
-    trajectoryAdd(resultTrajectory, curPoint, 0);
-    step = (double)temperature / trajectoryTime;
-
-    if (!((mcStyle == 1) || (mcStyle == 2) || (mcStyle == 3))) 
-    {
-        fprintf(stderr, "Warning: unknown mcStyle %d, set to default (1)\n", mcStyle);
-        newMcStyle = 1;
-    }
-
-    printf("Peforming Monte-Carlo NNI search\n");
-    printf("Initial temperature is %d\n%ld steps, style %d\n", temperature, trajectoryTime, mcStyle); 
-    printf("Initial score is %lu\n", score);
-    printf("Step\tTemp.\tScore\tBest score\n");
-
-    if ( (mcStyle == 1) || (newMcStyle == 1) ) while(curTime < trajectoryTime)
+int trajectoryNNIStep(
+		unsigned int mcStyle, 
+		unsigned int newMcStyle, 
+		HashAlignment* alignment,
+                PWM* pwmMatrix,
+		int alpha,
+	       	GapOpt gapOpt,
+	       	INT**** hashScore,
+		int* permutation,
+		TreeWithScore* curPoint, 
+		double* curTemperature, double startTemperature, double stepTemperature, 
+		unsigned long int* curTime, unsigned long int trajectoryTime, 
+		double*** p,
+		Trajectory* resultTrajectory) {
+    int trLen = 0;
+    if ( (mcStyle == 1) || (newMcStyle == 1) || (mcStyle == 4))
     { 
-        for(i = 0; (i < curPoint->tree->nodesNum) && (curTime < trajectoryTime); ++i)
-        { 
+        for(int i = 0; (i < curPoint->tree->nodesNum) && (*curTime < trajectoryTime); ++i)
+        {
             if (curPoint->tree->nodes[i]->neiNum != 1) /* if vertice i is a node */
             {
-                for(j = 0; (j < 3) && (curTime < trajectoryTime); ++j)
+                for(int j = 0; (j < 3) && (*curTime < trajectoryTime); ++j)
                 {
                     if (curPoint->tree->nodes[i]->neighbours[j]->pos > i && /* to regard each branch only once */
                         curPoint->tree->nodes[i]->neighbours[j]->neiNum != 1) /* branch is not trivial */
                     {
-                        for(variant = 1; (variant < 3) && (curTime < trajectoryTime); ++variant)
+                        for(int variant = 1; (variant < 3) && (*curTime < trajectoryTime); ++variant)
                         {
-                            curTemperature = temperature - step * curTime;
-                            /* printf("Second: %lu Temperature : %u\n",  curTime, curTemperature); */
                             curPoint->tree = treeNNIMove(curPoint->tree, i, j, variant, 0, 1);
-                            score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
+                            INT score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
                                                    alpha, gapOpt, hashScore, permutation);
+                            //printf("Second: %lu Temperature : %lf, %lu, %lu\n",  *curTime, *curTemperature, curPoint->score, score);
 
-                            if (isNextPoint(curPoint->score, score, (unsigned long)(GRADUS/curTemperature)))
+                            if (isNextPoint(curPoint->score, score, (unsigned long)(GRADUS/ *curTemperature)))
                             { 
                                 trLen++;
                                 trajectoryAdd(resultTrajectory,
                                               treeWithScoreCreate(treeCopy(curPoint->tree,0), score),
-                                              curTime); 
-                                printf("%ld\t%d\t%lu\t%lu\n", curTime, (int)curTemperature, score,
-                                        resultTrajectory->bestPoint->treeWS->score);
+                                              *curTime); 
+				if ((int)*curTemperature!=0)
+                                	printf("%lu\t%d\t%lu\t%lu\n", *curTime, (int)*curTemperature, score,
+                                        	resultTrajectory->bestPoint->treeWS->score);
                                 curPoint->score = score;
                             }
                             else
@@ -343,7 +327,8 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
                                 // return to prev state
                                 curPoint->tree = treeNNIMove(curPoint->tree, i, j, variant, 0, 0);
                             }
-                            ++curTime;
+                            ++*curTime;
+                            *curTemperature -= stepTemperature;
                         } /* for variants of NNI */
                     } /* if branch is inner and not yet regarded */
                 } /* for adjacent branches */
@@ -351,36 +336,35 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
         }  /* for all vertices */
     } /* while maximum number of steps is not reached, mcStyle 1*/
 
-    if (mcStyle == 2) while(curTime < trajectoryTime)
+    if (mcStyle == 2)
     { 
-        new = FALSE;
-        nodePermutation = getPermutation(curPoint->tree->nodesNum);
-        for(ii = 0; (ii < curPoint->tree->nodesNum) && (!new) && (curTime < trajectoryTime); ++ii)
+        int new = FALSE;
+        int* nodePermutation = getPermutation(curPoint->tree->nodesNum);
+        for(int ii = 0; (ii < curPoint->tree->nodesNum) && (!new) && (*curTime < trajectoryTime); ++ii)
         { 
-            i = nodePermutation[ii];        
+            int i = nodePermutation[ii];        
             if (curPoint->tree->nodes[i]->neiNum != 1) /* if vertice i is a node */
             {
-                for(j = 0; (j < 3) && (!new) && (curTime < trajectoryTime); ++j)
+                for(int j = 0; (j < 3) && (!new) && (*curTime < trajectoryTime); ++j)
                 {
                     if (curPoint->tree->nodes[i]->neighbours[j]->pos > i && /* to regard each branch only once */
                         curPoint->tree->nodes[i]->neighbours[j]->neiNum != 1) /* branch is not trivial */
                     {
-                        for(variant = 1; variant < 3 && (!new) && (curTime < trajectoryTime); ++variant)
+                        for(int variant = 1; variant < 3 && (!new) && (*curTime < trajectoryTime); ++variant)
                         {
-                            curTemperature = temperature - step * curTime;
-                            /* printf("Second: %lu Temperature : %u\n",  curTime, curTemperature); */
+                            /* printf("Second: %lu Temperature : %u\n",  *curTime, *curTemperature); */
                             curPoint->tree = treeNNIMove(curPoint->tree, i, j, variant, 0, 1);
-                            score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
+                            INT score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
                                                    alpha, gapOpt, hashScore, permutation);
 
-                            if (isNextPoint(curPoint->score, score, (unsigned long)(GRADUS/curTemperature)))
+                            if (isNextPoint(curPoint->score, score, (unsigned long)(GRADUS/ *curTemperature)))
                             { 
                                 trLen++;
                                 new = TRUE;
                                 trajectoryAdd(resultTrajectory,
                                               treeWithScoreCreate(treeCopy(curPoint->tree,0), score),
-                                              curTime); 
-                                printf("%ld\t%d\t%lu\t%lu\n", curTime, (int)curTemperature, score,
+                                              *curTime); 
+                                printf("%lu\t%d\t%lu\t%lu\n", *curTime, (int)*curTemperature, score,
                                         resultTrajectory->bestPoint->treeWS->score);
                                 curPoint->score = score;
                             }
@@ -389,7 +373,8 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
                                 // return to prev state
                                 curPoint->tree = treeNNIMove(curPoint->tree, i, j, variant, 0, 0);
                             }
-                            ++curTime;
+                            ++*curTime;
+                            *curTemperature -= stepTemperature;
                         } /* for variants of NNI */
                     } /* if branch is inner and not yet regarded */
                 } /* for adjacent branches */
@@ -400,44 +385,29 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
 
     if (mcStyle == 3) 
     { 
-        p = (double***) malloc(sizeof(double**)*(curPoint->tree->nodesNum));
-        for(i = 0; i < curPoint->tree->nodesNum; ++i)
-        {
-            p[i] = (double**) malloc(sizeof(double)*3);
-            for(j = 0; j < 3; ++j)
-            {
-                p[i][j] = (double*) malloc(sizeof(double)*2);
-                for(variant = 1; variant < 3; ++variant)
-                {
-                    p[i][j][variant - 1] = 0.0;
-                }
-            }
-        }
-        curTemperature = (double) temperature;
-        while(curTime < trajectoryTime)
-        {
-            Z = 1.0; /* Statistical sum; 1 is for the current state */
-            for(i = 0; i < curPoint->tree->nodesNum; ++i)
+
+            double Z = 1.0; /* Statistical sum; 1 is for the current state */
+            for(int i = 0; i < curPoint->tree->nodesNum; ++i)
             { 
                 if (curPoint->tree->nodes[i]->neiNum != 1) /* if vertice i is a node */
                 {
-                    for(j = 0; j < 3; ++j)
+                    for(int j = 0; j < 3; ++j)
                     {
                         if (curPoint->tree->nodes[i]->neighbours[j]->pos > i && /* to regard each branch only once */
                             curPoint->tree->nodes[i]->neighbours[j]->neiNum != 1) /* branch is not trivial */
                         {
-                            for(variant = 1; variant < 3; ++variant)
+                            for(int variant = 1; variant < 3; ++variant)
                             {
                                 curPoint->tree = treeNNIMove(curPoint->tree, i, j, variant, 0, 1);
-                                score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
+                                INT score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
                                                        alpha, gapOpt, hashScore, permutation);
-                                coeff = ((double)score - curPoint->score)/curPoint->score;
-                                coeff /= curTemperature;
+                                double coeff = ((double)score - curPoint->score)/curPoint->score;
+                                coeff /= *curTemperature;
                                 coeff *= GRADUS;
                                 if (coeff > 10) coeff = 10.0;
                                 p[i][j][variant - 1] = exp(coeff);
                                 Z += p[i][j][variant - 1];
-                                ++curTime;
+                                ++*curTime;
                                 curPoint->tree = treeNNIMove(curPoint->tree, i, j, variant, 0, 0); /* return to previous */
                             } /* for variants of NNI */
                         } /* if branch is inner and not yet regarded */
@@ -446,19 +416,20 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
             }  /* for all vertices */
 
             /**** choose i, j, variant to move ****/
-            choice = rand();
-            partialStatSum = 0.0;
-            randVariant = 0; /* means current state */
-            for(i = 0; (i < curPoint->tree->nodesNum) && (randVariant == 0); ++i)
+            int choice = rand();
+            double partialStatSum = 0.0;
+            int randVariant = 0; /* means current state */
+	    int randI, randJ;
+            for(int i = 0; (i < curPoint->tree->nodesNum) && (randVariant == 0); ++i)
             { 
                 if (curPoint->tree->nodes[i]->neiNum != 1) /* if vertice i is a node */
                 {
-                    for(j = 0; (j < 3) && (randVariant == 0); ++j)
+                    for(int j = 0; (j < 3) && (randVariant == 0); ++j)
                     {
                         if (curPoint->tree->nodes[i]->neighbours[j]->pos > i && /* to regard each branch only once */
                             curPoint->tree->nodes[i]->neighbours[j]->neiNum != 1) /* branch is not trivial */
                         {
-                            for(variant = 1; (variant < 3) && (randVariant == 0); ++variant)
+                            for(int variant = 1; (variant < 3) && (randVariant == 0); ++variant)
                             {
                                 partialStatSum += p[i][j][variant - 1];
                                 if (partialStatSum*RAND_MAX/Z > choice) 
@@ -475,22 +446,126 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
             if (randVariant > 0) /* a new tree is chosen */
             {
                 curPoint->tree = treeNNIMove(curPoint->tree, randI, randJ, randVariant, 0, 1);
-                score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
+                INT score = countScoreHash(alignment, curPoint->tree, pwmMatrix,
                                        alpha, gapOpt, hashScore, permutation);
                 trLen++;
-                newTree = treeCopy(curPoint->tree, 0);
-                newTreeWS = treeWithScoreCreate(newTree, score);
-                trajectoryAdd(resultTrajectory, newTreeWS, curTime);
+                Tree* newTree = treeCopy(curPoint->tree, 0);
+                TreeWithScore* newTreeWS = treeWithScoreCreate(newTree, score);
+                trajectoryAdd(resultTrajectory, newTreeWS, *curTime);
                 treeWithScoreDelete(newTreeWS);
-                printf("%ld\t%d\t%lu\t%lu\n", curTime, (int)curTemperature, score,
+                printf("%lu\t%d\t%lu\t%lu\n", *curTime, (int)*curTemperature, score,
                         resultTrajectory->bestPoint->treeWS->score);
                 curPoint->score = score;
             }
-            curTemperature = temperature - step * curTime;
-
-        } /* while maximum number of steps is not reached, mcStyle 3 */
+            *curTemperature = startTemperature - stepTemperature * *curTime;
     } /* if mcStyle is 3 */
+    return trLen;
+}
 
-    printf("Trajectory length is %d\n", trLen);
-    return resultTrajectory;
+Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
+                          PWM* pwmMatrix,  int alpha, GapOpt gapOpt, INT**** hashScore,
+                          unsigned long trajectoryTime, unsigned int temperature, unsigned int mc3chains, unsigned int mcStyle)
+    // traectoryTime means how many iterations should algorithm do 
+{
+    int treeNum = mc3chains;    
+    char** treeNames;
+    char** seqNames;
+    int* permutation;
+    int* trLen = malloc(sizeof(int) * treeNum);
+    double* curTemperature = malloc(sizeof(double) * treeNum);
+    Tree* curTree;
+    INT score;
+    TreeWithScore** curPoint = malloc(sizeof(TreeWithScore*) * treeNum);
+    Trajectory** resultTrajectory = malloc(sizeof(Trajectory*) * treeNum);
+    unsigned long int* curTime = malloc(sizeof(unsigned long int) * treeNum);
+    double step;
+    unsigned int newMcStyle = 0;
+    double*** p = NULL;
+
+    srand(time(NULL)); // need for correct run isNextPoint;
+
+    treeNames = treeGetNames(inTree);
+    seqNames = hashAlignmentGetSeqNames(alignment);
+    permutation = calculatePermutation(treeNames, seqNames, alignment->alignmentSize);
+    curTree = treeCopy(inTree, 1);
+    treeWash(inTree);
+    score = countScoreHash(alignment, curTree, pwmMatrix, 
+                           alpha, gapOpt, hashScore, permutation);
+    for (int i = 0; i < treeNum; i++) {
+	trLen[i] = 0;
+	curTime[i] = 0;
+        curPoint[i] = treeWithScoreCreate(treeCopy(curTree, 1), score);
+    	resultTrajectory[i] = trajectoryCreate(trajectoryTime, temperature);
+    	trajectoryAdd(resultTrajectory[i], curPoint[i], 0);
+    }
+    step = (double)temperature / trajectoryTime;
+
+    if (!((mcStyle == 1) || (mcStyle == 2) || (mcStyle == 3) || (mcStyle == 4))) 
+    {
+        fprintf(stderr, "Warning: unknown mcStyle %u, set to default (1)\n", mcStyle);
+        newMcStyle = 1;
+    }
+
+    printf("Peforming Monte-Carlo NNI search\n");
+    printf("Initial temperature is %u\n%lu steps, style %u\n", temperature, trajectoryTime, mcStyle); 
+    printf("Initial score is %lu\n", score);
+    printf("Step\tTemp.\tScore\tBest score\n");
+    if (mcStyle == 3) {
+        p = (double***) malloc(sizeof(double**)*(curPoint[0]->tree->nodesNum));
+        for(int i = 0; i < curPoint[0]->tree->nodesNum; ++i)
+        {
+            p[i] = (double**) malloc(sizeof(double*)*3);
+            for(int j = 0; j < 3; ++j)
+            {
+                p[i][j] = (double*) malloc(sizeof(double)*2);
+                for(int variant = 1; variant < 3; ++variant)
+                {
+                    p[i][j][variant - 1] = 0.0;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < treeNum; i++) {
+        curTemperature[i] = (double) temperature;
+    }
+    if (mcStyle == 4) {
+        for (int i = 0; i < treeNum; i++) {
+            curTemperature[i] = temperature * 1.0 / (treeNum-1) * i;
+	    if (curTemperature[i] == 0) curTemperature[i]=1;
+	}
+	step = 0;
+    }
+    while(curTime[0] < trajectoryTime) {
+#pragma omp parallel for
+        for (int i = 0; i < treeNum; i++) {
+        	trLen[i] += trajectoryNNIStep(mcStyle, newMcStyle, 
+			alignment,
+			pwmMatrix,
+			alpha,
+			gapOpt,
+			hashScore,
+			permutation,
+			curPoint[i], 
+			&curTemperature[i], temperature, step, 
+			&curTime[i], trajectoryTime, 
+			p,
+			resultTrajectory[i]);
+	}
+	if (mcStyle == 4) {
+	    int leftTree = rand() % treeNum;
+	    int rightTree = rand() % treeNum;
+            if (isNextPoint2(
+				    curPoint[leftTree]->score,
+				    curPoint[rightTree]->score,
+				    (unsigned long)(GRADUS/ curTemperature[leftTree]),
+				    (unsigned long)(GRADUS/ curTemperature[rightTree]))) {
+		TreeWithScore* tmp = curPoint[leftTree];
+		curPoint[leftTree] = curPoint[rightTree];
+		curPoint[rightTree] = tmp;
+		printf("Swapping %d and %d\n", leftTree, rightTree);
+	    }
+	}
+    } /* while maximum number of steps is not reached */
+    printf("Trajectory length is %u\n", trLen[0]);
+    return resultTrajectory[0];
 }  /* trajectoryNNI */

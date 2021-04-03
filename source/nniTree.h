@@ -45,5 +45,5 @@ enum RESULT_TREE_STYLE {
 
 Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
     PWM* pwmMatrix, int alpha, GapOpt gapOpt, INT**** hashScore,
-    unsigned long int trajectoryTime, unsigned int temperature, unsigned int mcStyle);
+    unsigned long int trajectoryTime, unsigned int temperature, unsigned int mc3chains, unsigned int mcStyle);
 #endif

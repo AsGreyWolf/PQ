@@ -83,7 +83,7 @@ void printLongHelp(void)
     printf("      --initTemp <Positive integer>\n");
     printf("           For \"trajectory\"option: initial temperature\n");
     printf("           Default: 1000\n");
-    printf("      --mcStyle <1|2|3>\n");
+    printf("      --mcStyle <1|2|3|4>\n");
     printf("           For \"trajectory\"option: style of Monte-Carlo search\n");
     printf("           Default: 1\n");
     printf("      --trajectoryResultStyle <1|2>\n");
@@ -144,7 +144,7 @@ void printHelp(char *command)
     printf("\t\t[--chType <bestScore|consensus|genitor>]\n");
     printf("\t\t\t[--iterNum <int>] [--iterNew <int>] [--iterLim <int>]\n");
     printf("\t[-nniType <none|simple|direct|trajectory>\n");
-    printf("\t\t[--trTime <int>] [--initTemp <int>] [--mcStyle <1|2|3>]] [--trajectoryResultStyle <1|2>]]\n");
+    printf("\t\t[--trTime <int>] [--initTemp <int>] [--mcStyle <1|2|3|4>] [--mc3chains <int>]] [--trajectoryResultStyle <1|2>]]\n");
     printf("\t[-sprType <none|simple|direct>]\n");
     printf("\t[-neiZscore <0|1>] [-randTreeZscore <0|1>]\n");
     printf("\t\t[-distrFile <FileName>]\n");
@@ -177,6 +177,7 @@ int main(int argc, char** argv)
     char* nniType;
     unsigned long int trTime = 1000;
     unsigned int initTemp = 1000;
+    unsigned int mc3chains = 10;
     unsigned int mcStyle = 1;
     unsigned int trajectoryResultStyle = 1;
     char* sprType;
@@ -391,6 +392,14 @@ int main(int argc, char** argv)
                 if (startOptionsNum + 1 < argc)
                 {
                     initTemp = atoi(argv[startOptionsNum + 1]);
+                }
+            }
+	    if (strcmp(param, "--mc3chains") == 0)
+            {
+                known = 10;
+                if (startOptionsNum + 1 < argc)
+                {
+                    mc3chains = atoi(argv[startOptionsNum + 1]);
                 }
             }
             if (strcmp(param, "--mcStyle") == 0)
@@ -746,7 +755,7 @@ int main(int argc, char** argv)
     }
     else if (strcmp(nniType, "trajectory") == 0)
     {
-        resultTrajectory = trajectoryNNI(result->tree, alignment, pwmMatrix, alpha, gapOpt, hashScore, trTime, initTemp, mcStyle);
+        resultTrajectory = trajectoryNNI(result->tree, alignment, pwmMatrix, alpha, gapOpt, hashScore, trTime, initTemp, mc3chains, mcStyle);
         treeWithScoreDelete(result);
 	if (trajectoryResultStyle == BEST_SCORE) {
         	result = resultTrajectory->bestPoint->treeWS;
