@@ -265,8 +265,8 @@ char isNextPoint2(int prevScore, int newScore, unsigned long revPrevTemp, unsign
 
         minProbability = (double) rand();
         minProbability /= RAND_MAX; 
-        coeff = ((double)(newScore - prevScore));
-        coeff = coeff/revPrevTemp - coeff/revNewTemp;
+        coeff = ((double)(newScore - prevScore))/maxScore;
+        coeff = coeff*revPrevTemp - coeff*revNewTemp;
         probability = exp(coeff);
         if ( probability > minProbability)
         {
