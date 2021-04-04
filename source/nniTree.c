@@ -266,7 +266,7 @@ char isNextPoint2(int prevScore, int newScore, unsigned long revPrevTemp, unsign
         minProbability = (double) rand();
         minProbability /= RAND_MAX; 
         coeff = ((double)(newScore - prevScore));
-        coeff = coeff*revPrevTemp - coeff*revNewTemp;
+        coeff = coeff/revPrevTemp - coeff/revNewTemp;
         probability = exp(coeff);
         if ( probability > minProbability)
         {
@@ -551,7 +551,7 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
 			p,
 			resultTrajectory[i]);
 	}
-	if (mcStyle == 4) {
+	if (mcStyle == 4) for(int i=0;i<20;i++){
 	    int leftTree = 0;
 	    int rightTree = 0;
 	    while (leftTree == rightTree) {
@@ -573,6 +573,10 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
                 trajectoryAdd(resultTrajectory[rightTree],
                     treeWithScoreCreate(treeCopy(curPoint[rightTree]->tree,0), curPoint[rightTree]->score),
                     curTime[rightTree]); 
+                printf("%lu\t%d\t%lu\t%lu\n", curTime[leftTree], (int)curTemperature[leftTree], curPoint[leftTree]->score,
+                                        resultTrajectory[leftTree]->bestPoint->treeWS->score);
+                printf("%lu\t%d\t%lu\t%lu\n", curTime[rightTree], (int)curTemperature[rightTree], curPoint[rightTree]->score,
+                                        resultTrajectory[rightTree]->bestPoint->treeWS->score);
 	    }
 	}
     } /* while maximum number of steps is not reached */
