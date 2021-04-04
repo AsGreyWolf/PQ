@@ -551,7 +551,7 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
 			p,
 			resultTrajectory[i]);
 	}
-	if (mcStyle == 4) for(int i=0;i<20;i++){
+	if (mcStyle == 4) /*for(int i=0;i<20;i++)*/{
 	    int leftTree = 0;
 	    int rightTree = 0;
 	    while (leftTree == rightTree) {
