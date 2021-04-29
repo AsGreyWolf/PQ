@@ -144,7 +144,7 @@ void printHelp(char *command)
     printf("\t\t[--chType <bestScore|consensus|genitor>]\n");
     printf("\t\t\t[--iterNum <int>] [--iterNew <int>] [--iterLim <int>]\n");
     printf("\t[-nniType <none|simple|direct|trajectory>\n");
-    printf("\t\t[--trTime <int>] [--initTemp <int>] [--mcStyle <1|2|3|4>] [--mc3chains <int>]] [--trajectoryResultStyle <1|2>]]\n");
+    printf("\t\t[--trTime <int>] [--initTemp <int>] [--mcStyle <1|2|3|4>] [--mc3chains <int>]] [--trajectoryResultStyle <1|2>] [--numTrajectoryRuns <int>] [--sampleFreq <int>] [--burning <float>]]\n");
     printf("\t[-sprType <none|simple|direct>]\n");
     printf("\t[-neiZscore <0|1>] [-randTreeZscore <0|1>]\n");
     printf("\t\t[-distrFile <FileName>]\n");
@@ -178,6 +178,9 @@ int main(int argc, char** argv)
     unsigned long int trTime = 1000;
     unsigned int initTemp = 1000;
     unsigned int mc3chains = 10;
+    unsigned int sampleFreq = 500;
+    float burning = 0.25f;
+    unsigned int numTrajectoryRuns = 2;
     unsigned int mcStyle = 1;
     unsigned int trajectoryResultStyle = 1;
     char* sprType;
@@ -206,7 +209,6 @@ int main(int argc, char** argv)
     Tree** treesTemp;
     unsigned int* treesWeight;
     TreeWithScore* nniResult;
-    Trajectory* resultTrajectory;
     TreeWithScore* sprResult;
     double relativeScore;
     char** treeNames;
@@ -396,10 +398,26 @@ int main(int argc, char** argv)
             }
 	    if (strcmp(param, "--mc3chains") == 0)
             {
-                known = 10;
+                known = 1;
                 if (startOptionsNum + 1 < argc)
                 {
                     mc3chains = atoi(argv[startOptionsNum + 1]);
+                }
+            }
+	    if (strcmp(param, "--sampleFreq") == 0)
+            {
+                known = 1;
+                if (startOptionsNum + 1 < argc)
+                {
+                    sampleFreq = atoi(argv[startOptionsNum + 1]);
+                }
+            }
+	    if (strcmp(param, "--numTrajectoryRuns") == 0)
+            {
+                known = 1;
+                if (startOptionsNum + 1 < argc)
+                {
+                    numTrajectoryRuns = atoi(argv[startOptionsNum + 1]);
                 }
             }
             if (strcmp(param, "--mcStyle") == 0)
@@ -539,6 +557,15 @@ int main(int argc, char** argv)
                 if (startOptionsNum + 1 < argc)
                 {
                     consensus_threshold = atof(argv[startOptionsNum + 1]);
+                }
+            }
+	    if (strcmp(param, "--burning") == 0)
+            {
+                known = 1;
+                
+                if (startOptionsNum + 1 < argc)
+                {
+                    burning = atof(argv[startOptionsNum + 1]);
                 }
             }
             if (strcmp(param, "-gapOpt") == 0)
@@ -755,25 +782,35 @@ int main(int argc, char** argv)
     }
     else if (strcmp(nniType, "trajectory") == 0)
     {
-        resultTrajectory = trajectoryNNI(result->tree, alignment, pwmMatrix, alpha, gapOpt, hashScore, trTime, initTemp, mc3chains, mcStyle);
+        Trajectory** resultTrajectories = malloc(numTrajectoryRuns * sizeof(Trajectory*));
+	for (int i=0; i < numTrajectoryRuns; i++)
+		resultTrajectories[i] = trajectoryNNI(result->tree, alignment, pwmMatrix, alpha, gapOpt, hashScore, trTime, initTemp, mc3chains, mcStyle);
         treeWithScoreDelete(result);
 	if (trajectoryResultStyle == BEST_SCORE) {
-        	result = resultTrajectory->bestPoint->treeWS;
-        	nniResult = gradientNNI(result->tree, alignment, pwmMatrix, 
-                                alpha, gapOpt, hashScore); /* perform hill climbing after trajectory */
-        	treeWithScoreDelete(result);
-        	result = nniResult;
+		for (int i=0; i < numTrajectoryRuns; i++) {
+        		TreeWithScore* resultCandidate = resultTrajectories[i]->bestPoint->treeWS;
+        		nniResult = gradientNNI(resultCandidate->tree, alignment, pwmMatrix, 
+                        	        	alpha, gapOpt, hashScore); /* perform hill climbing after trajectory */
+        		treeWithScoreDelete(resultCandidate);
+			if (result == NULL || result->score < nniResult->score)
+        			result = nniResult;
+		}
 	} else if (trajectoryResultStyle == CONSENSUS) {
-		treesTemp = malloc(sizeof(Tree*) * resultTrajectory->size);
-		treesWeight = malloc(sizeof(unsigned int) * resultTrajectory->size);
+		treesTemp = malloc(sizeof(Tree*) * resultTrajectories[0]->size * numTrajectoryRuns);
+		treesWeight = malloc(sizeof(unsigned int) * resultTrajectories[0]->size * numTrajectoryRuns);
 		unsigned int i = 0;
-		for (TrajectoryElement* element = resultTrajectory->head; element != NULL; element = element->next) {
-			treesTemp[i] = element->treeWS->tree;
-			TrajectoryElement* next = element->next;
-			treesWeight[i++] = (next == NULL ? trTime : ((TrajectoryElement*)element->next)->time) - element->time;
+		for (int j=0; j < numTrajectoryRuns; j++) {
+			unsigned int k = 0;
+			for (TrajectoryElement* element = resultTrajectories[j]->head; element != NULL; element = element->next) {
+				if (k < burning * resultTrajectories[0]->size && k++ % sampleFreq == 0) {
+					treesTemp[i] = element->treeWS->tree;
+					TrajectoryElement* next = element->next;
+					treesWeight[i++] = (next == NULL ? trTime : ((TrajectoryElement*)element->next)->time) - element->time;
+				}
+			}
 		}
 
-        	result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, resultTrajectory->size,
+        	result = treeWithScoreCreate(makeConsensus(treesTemp, treesWeight, i,
                     consensus_threshold, extended), 0);
         	treeLCAFinderCalculate(result->tree);
         	treeNames = treeGetNames(result->tree);
