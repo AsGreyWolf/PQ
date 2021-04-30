@@ -316,7 +316,7 @@ int trajectoryNNIStep(
                                 trajectoryAdd(resultTrajectory,
                                               treeWithScoreCreate(treeCopy(curPoint->tree,0), score),
                                               *curTime); 
-				if ((int)*curTemperature!=0)
+				if (*curTime % 10 == 0)
                                 	printf("%lu\t%d\t%lu\t%lu\n", *curTime, (int)*curTemperature, score,
                                         	resultTrajectory->bestPoint->treeWS->score);
                                 curPoint->score = score;
@@ -565,17 +565,19 @@ Trajectory* trajectoryNNI(Tree* inTree, HashAlignment* alignment,
 		TreeWithScore* tmp = curPoint[leftTree];
 		curPoint[leftTree] = curPoint[rightTree];
 		curPoint[rightTree] = tmp;
-		printf("Swapping %d and %d\n", leftTree, rightTree);
                 trajectoryAdd(resultTrajectory[leftTree],
                     treeWithScoreCreate(treeCopy(curPoint[leftTree]->tree,0), curPoint[leftTree]->score),
                     curTime[leftTree]); 
                 trajectoryAdd(resultTrajectory[rightTree],
                     treeWithScoreCreate(treeCopy(curPoint[rightTree]->tree,0), curPoint[rightTree]->score),
                     curTime[rightTree]); 
+				if (curTime[leftTree] % 100 == 0) {
+		printf("Swapping %d and %d\n", leftTree, rightTree);
                 printf("%lu\t%d\t%lu\t%lu\n", curTime[leftTree], (int)curTemperature[leftTree], curPoint[leftTree]->score,
                                         resultTrajectory[leftTree]->bestPoint->treeWS->score);
                 printf("%lu\t%d\t%lu\t%lu\n", curTime[rightTree], (int)curTemperature[rightTree], curPoint[rightTree]->score,
                                         resultTrajectory[rightTree]->bestPoint->treeWS->score);
+				}
 	    }
 	}
     } /* while maximum number of steps is not reached */

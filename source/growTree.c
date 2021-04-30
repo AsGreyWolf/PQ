@@ -35,6 +35,48 @@ Tree* growThreeLeavesTree(char* leaf1, char* leaf2, char* leaf3)
     return result;
 } /* growThreeLeavesTree */
 
+TreeWithScore* getRandomChild(HashAlignment* alignment, TreeWithScore* treeWS,\
+        char* newLeafName, int alpha, GapOpt gapOpt,\
+        PWM* pwmMatrix,  INT**** hashScore, int* permutation) 
+{
+    INT score;
+    int i, j;
+    Tree* parent;
+    TreeWithScore* bestChild;
+    Tree* curChild;
+    Node* curNode;
+
+    parent = treeCopy(treeWS->tree, 0);
+    curChild = treeAddLeaf(treeWS->tree, 0, 0, newLeafName, 1, 1);
+    score = recountScoreHash(alignment, curChild, pwmMatrix, 
+                             alpha, gapOpt, hashScore, permutation);
+
+    bestChild = treeWithScoreCreate(curChild,  score);
+
+    do {
+    	i = rand() % parent->nodesNum; 
+        curNode = parent->nodes[i];
+    	j = rand() % curNode->neiNum; 
+    } while (curNode->neighbours[j]->pos <= i);
+
+    curChild = treeAddLeaf(parent, i, j, newLeafName, 0, 1);
+
+    score = recountScoreHash(alignment, curChild, pwmMatrix, \
+            alpha, gapOpt,\
+            hashScore, permutation);
+    
+    if(score > bestChild->score)
+    {
+        treeDelete(bestChild->tree);
+        bestChild->tree = treeCopy(curChild, 0);
+        bestChild->score = score;
+    }
+    parent = treeRemoveLeaf(parent, parent->leavesNum - 1, 0, 0);
+           
+    bestChild->score += treeWS->score;
+    return bestChild;
+} /* getBestChild */
+
 
 TreeWithScore* getBestChild(HashAlignment* alignment, TreeWithScore* treeWS,\
         char* newLeafName, int alpha, GapOpt gapOpt,\
@@ -87,7 +129,7 @@ TreeWithScore* getBestChild(HashAlignment* alignment, TreeWithScore* treeWS,\
 
 
 TreeWithScore* treeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
-        PWM* pwmMatrix,  INT**** hashScore, char randLeaves)
+        PWM* pwmMatrix,  INT**** hashScore, char randLeaves, int isRandom)
 {
 
     TreeWithScore* result;
@@ -115,7 +157,7 @@ TreeWithScore* treeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
     for (k = 3; k < alignment->alignmentSize; ++k)
     {
         //printf("%d leaf\n", k + 1);
-        newResult = getBestChild(alignment, result, names[permutation[k]],
+        newResult = (isRandom ? getRandomChild : getBestChild)(alignment, result, names[permutation[k]],
                                  alpha, gapOpt,
                                  pwmMatrix, hashScore, permutation);
         treeWithScoreDelete(result);
@@ -128,7 +170,7 @@ TreeWithScore* treeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
 } /* treeGrow */
 
 TreeWithScore* oneTreeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
-        PWM* pwmMatrix, INT**** hashScore, char randLeaves)
+        PWM* pwmMatrix, INT**** hashScore, char randLeaves, int isRandom)
 // PWM - for protein is PWM matrix, for nucleotide - null pointer
 // storeHash - create hash to store score function(faster)
 // or recalculate them each time (work much longer)
@@ -138,7 +180,7 @@ TreeWithScore* oneTreeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
     
     TreeWithScore* result;
     printf("Grow one tree by stepwise addition\n");
-    result = treeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, randLeaves);
+    result = treeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, randLeaves, isRandom);
     printf("Tree score is %lu\n", result->score);
     return result;
 } /*  oneTreeGrow */
@@ -161,7 +203,7 @@ TreeWithScore** multipleTreeGrow(HashAlignment* alignment,
     }
     for (i = 0; i < treeNum; ++i)
     {
-        treeArray[i] = treeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, 1);
+        treeArray[i] = treeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, 1, 0);
         printf("Tree number %d, score = %lu\n", i + 1, treeArray[i]->score);
     }
     treeWithScoreSort(treeArray, treeNum);

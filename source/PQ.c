@@ -46,6 +46,7 @@ void printLongHelp(void)
     printf("\n");
     printf("Optimization options:\n");
     printf(" -grType <String>\n");
+    printf("      \"random\": grow a single tree by stepwise addition of leaves,\n");
     printf("      \"one\": grow a single tree by stepwise addition of leaves,\n");
     printf("      \"multiple\":  grow many trees\n");
     printf("      Default: \"multiple\"\n");
@@ -140,7 +141,7 @@ void printHelp(char *command)
     printf("%s -alignment <FileName> -out <FileName>\n", command);
     printf("\t[-iniTree <FileName>] [-pwm <FileName>]\n");
     printf("\t[-alpha <int>] [-gapOpt <0|1|2>]\n");
-    printf("\t[-grType <one|multiple> [-randLeaves <0|1>]] [--treeNum <int>]\n");
+    printf("\t[-grType <random|one|multiple> [-randLeaves <0|1>]] [--treeNum <int>]\n");
     printf("\t\t[--chType <bestScore|consensus|genitor>]\n");
     printf("\t\t\t[--iterNum <int>] [--iterNew <int>] [--iterLim <int>]\n");
     printf("\t[-nniType <none|simple|direct|trajectory>\n");
@@ -177,7 +178,7 @@ int main(int argc, char** argv)
     char* nniType;
     unsigned long int trTime = 1000;
     unsigned int initTemp = 1000;
-    unsigned int mc3chains = 10;
+    unsigned int mc3chains = 3;
     unsigned int sampleFreq = 500;
     float burning = 0.25f;
     unsigned int numTrajectoryRuns = 2;
@@ -663,8 +664,12 @@ int main(int argc, char** argv)
     {
         if (strcmp(grType, "one") == 0)
         {
-            result = oneTreeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, randLeaves);
+            result = oneTreeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, randLeaves, 0);
         }
+	else if (strcmp(grType, "random") == 0)
+        {
+            result = oneTreeGrow(alignment, alpha, gapOpt, pwmMatrix, hashScore, randLeaves, 1);
+	}
         else if (strcmp(grType, "multiple") == 0)
         {
             trees = multipleTreeGrow(alignment, alpha, gapOpt, pwmMatrix, treeNum, hashScore);
@@ -796,16 +801,19 @@ int main(int argc, char** argv)
         			result = nniResult;
 		}
 	} else if (trajectoryResultStyle == CONSENSUS) {
-		treesTemp = malloc(sizeof(Tree*) * resultTrajectories[0]->size * numTrajectoryRuns);
-		treesWeight = malloc(sizeof(unsigned int) * resultTrajectories[0]->size * numTrajectoryRuns);
+		size_t lenSum = 0;
+		for (int j=0; j < numTrajectoryRuns; j++) {
+			lenSum += resultTrajectories[j]->size;
+		}
+		treesTemp = malloc(sizeof(Tree*) * lenSum);
+		treesWeight = malloc(sizeof(unsigned int) * lenSum);
 		unsigned int i = 0;
 		for (int j=0; j < numTrajectoryRuns; j++) {
-			unsigned int k = 0;
 			for (TrajectoryElement* element = resultTrajectories[j]->head; element != NULL; element = element->next) {
-				if (k < burning * resultTrajectories[0]->size && k++ % sampleFreq == 0) {
+				if (element->time > burning * resultTrajectories[j]->size) {
 					treesTemp[i] = element->treeWS->tree;
 					TrajectoryElement* next = element->next;
-					treesWeight[i++] = (next == NULL ? trTime : ((TrajectoryElement*)element->next)->time) - element->time;
+					treesWeight[i++] = (next == NULL ? trTime : ((TrajectoryElement*)element->next)->time) / sampleFreq - element->time / sampleFreq;
 				}
 			}
 		}

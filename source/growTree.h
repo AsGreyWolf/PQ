@@ -15,10 +15,10 @@ TreeWithScore* getBestChild(HashAlignment* alignment, TreeWithScore* treeWS,\
         PWM* pwmMatrix,  INT**** hashScore, int* permutation);
 
 TreeWithScore* treeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
-        PWM* pwmMatrix, INT**** hashScore, char randLeaves);
+        PWM* pwmMatrix, INT**** hashScore, char randLeaves, int isRandom);
 
 TreeWithScore* oneTreeGrow(HashAlignment* alignment, int alpha, GapOpt gapOpt,\
-        PWM* pwmMatrix,  INT**** hashScore, char randLeaves);
+        PWM* pwmMatrix,  INT**** hashScore, char randLeaves, int isRandom);
 
 TreeWithScore** multipleTreeGrow(HashAlignment* alignment,\
         int alpha, GapOpt gapOpt, \
